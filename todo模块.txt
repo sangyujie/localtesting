@@ -1,0 +1,82 @@
+*** Settings ***
+Suite Setup       setup
+Suite Teardown    teardown
+Test Setup        case_setup_t
+Test Teardown     case_teardown_t
+Resource          mtres.txt
+Library           SeleniumLibrary
+Library           OperatingSystem
+Library           DatabaseLibrary
+
+*** Test Cases ***
+case-t01
+    [Template]    tpl_userinfo
+    1    2    3    1@1.com    1    测试0709
+    11    22    33    11@1.com    11    测试22
+
+*** Keywords ***
+tpl_userinfo
+    [Arguments]    ${firatName}    ${lastName}    ${userName}    ${email}    ${password}    ${inputName}
+    ${x}    Row Count    select * from scott.userinfo where user_name='${userName} ';
+    ${y}    Evaluate    str($x+1)
+    log    2、点击接口测试课程
+    Click Link    接口测试课程
+    Wait Until Element Is Visible    link=点击..
+    log    3、点击注册
+    Click Link    点击..
+    log    4、输入注册用户名和密码
+    Input Text    id=firstName    ${firatName}
+    Input Text    id=lastName    ${lastName}
+    Input Text    id=userName    ${userName}
+    Input Text    id=email    ${email}
+    Input Text    id=password    ${password}
+    log    5、点击提交
+    Click Button    Sign Up
+    Wait Until Keyword Succeeds    30    1    Check If Exists In Database    select * from scott.userinfo where user_name='${userName}';
+    log    6、确认注册成功
+    log    6.1页面显示注册成功提示
+    Check If Exists In Database    select * from scott.userinfo where user_name='${userName}';
+    Page Should Contain    \ \ \ User \ registered successfully
+    log    6.2数据表中有此数据
+    Row Count Is Equal To X    select * from scott.userinfo where user_name='${userName}';    ${y}
+    log    7、点击click here登录
+    Click Link    Click here..
+    log    8、输入注册成功的用户名和密码
+    Input Text    id=j_username    ${userName}
+    Input Text    id=j_password    ${password}
+    log    9、点击登录
+    Click Button    登录
+    log    10、确认登录成功
+    Page Should Contain Button    Add Todo
+    log    11、输入TODO_name
+    Input Text    id=inputName    ${inputName}
+    log    12、选择优先级
+    Select From List By Label    id=priority    MEDIUM
+    log    13、选择日期
+    Click Element    class=icon-calendar    #弹出日期控件
+    sleep    2
+    Click Button    Today
+    Click Button    Close
+    log    14、点击add todo
+    Click Button    Add Todo
+    log    15、todolist页面有数据
+    Page Should Contain Element    css=body > div > div:nth-child(3) > table    #列表
+    Page Should Contain Element    css=body > div > div:nth-child(3) > div:nth-child(1)
+    log    16、数据库有数据
+    Check If Exists In Database    select * from scott.todo where name='${inputName}';
+    log    17、点击删除
+    Click Button    Remove
+    log    18、删除成功，页面不显示数据
+    Page Should Contain Element    css=body > div > div:nth-child(3) > div:nth-child(5)     # \ \ \ \ No Todo items found
+    Page Should Contain Element    css=body > div > div:nth-child(3) > div:nth-child(1)
+    log    18.1删除数据库中数据
+    Execute Sql String    delete from scott.todo where name='${inputName}';
+    log    19、退出登录
+    Click Button    Logout
+
+case_setup_t
+    Execute Sql String    delete from scott.todo ;
+    Execute Sql String    delete from scott.userinfo;
+
+case_teardown_t
+    Select Window
